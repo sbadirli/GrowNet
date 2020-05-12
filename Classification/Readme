@@ -76,5 +76,6 @@ CUDA_VISIBLE_DEVICES=1 python main_cls_cv.py \        --> main python script to 
 3. To enforce the changes you have done run this line on command line: chmod +x train_cls.sh
 
 4. Finally run the script by executing this line on command window: ./train_cls.sh
+   This will reproduce the results with Higgs data.
 
 
