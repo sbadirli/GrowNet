@@ -10,7 +10,6 @@ conda create --name my_env --file requirements.txt
 The most important packages are followings:
 
 cudatoolkit=10.1.243 
-
 numpy=1.18.1 
 
 pandas=1.0.0 
