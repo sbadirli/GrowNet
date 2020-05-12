@@ -9,11 +9,15 @@ conda create --name my_env --file requirements.txt
 
 The most important packages are followings:
 
-cudatoolkit=10.1.243 \\
-numpy=1.18.1 \\
-pandas=1.0.0 \\
-python=3.6.10 \\
-pytorch=1.4.0 \\
-torchvision=0.5.0 \\
+cudatoolkit=10.1.243 
 
+numpy=1.18.1 
+
+pandas=1.0.0 
+
+python=3.6.10 
+
+pytorch=1.4.0 
+
+torchvision=0.5.0 
 
