@@ -39,7 +39,12 @@ You can download the data used in the paper from Google OneDrive link. Please pu
 
 ## Experiments
 
-To reproduce the results from pape, navigate to the task folder: Classification, L2R or Regression and simply execute the following command on terminal:
+To reproduce the results from pape, first activate conda virtual environment
+
+```
+conda activate grownet
+```
+Then simply navigate to the task folder: Classification, L2R or Regression and execute the following command on terminal:
 
 ```
 ./train.sh
