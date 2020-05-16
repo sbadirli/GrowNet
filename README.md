@@ -23,7 +23,6 @@ numpy=1.18.1
 pandas=1.0.0 
 python=3.6.10 
 pytorch=1.4.0 
-torchvision=0.5.0 
 ```
 
 ## Installing
