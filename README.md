@@ -35,7 +35,19 @@ conda create --name grownet --file requirements.txt
 
 ## Data
 
-You can download the data used in the paper from Google OneDrive link. Please put it into data folder in GrowNet file next to Classification/L2R/Regression folders.
+You can download the data used in the paper from Google OneDrive link. Please put it into "data" folder in GrowNet folder next to Classification/L2R/Regression folders.
+
+
+#### 1. Classification:
+
+##### 2. Learning to Rank (L2R): 
+Data Loading pipeline for L2R task is implemented by taking Microsoft (MSLR-WEB10K) dataset as a baseline. We also converted Yahoo into tis format. THus if you want to use some other L2R datasets with GrowNet, please convert it into MSLR format. Below you can find a simple sample with just 10 features:
+```
+0 qid:10 1:2 2:0 3:0 4:0 5:2 6:0.666667 7:0 8:0 9:0 10:0.666667 
+````
+The first feature is label, second is query id and the rest are data features.
+
+#### 3. Regression:
 
 ## Experiments
 
