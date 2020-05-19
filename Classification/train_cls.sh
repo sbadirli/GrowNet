@@ -10,7 +10,16 @@
 # Criteo_Dracula 766
 # yahoo.pair 519
 # higgs 28
-data=higgs
+dataset=higgs
+
+BASEDIR=$(dirname "$0")
+OUTDIR="${BASEDIR}/ckpt/"
+
+if [ ! -d "${OUTDIR}" ]
+then   
+    echo "Output dir ${OUTDIR} does not exist, creating..."
+    mkdir -p ${OUTDIR}
+fi    
 
 CUDA_VISIBLE_DEVICES=0 python main_cls_cv_experiments.py \
     --feat_d 28 \
@@ -19,9 +28,9 @@ CUDA_VISIBLE_DEVICES=0 python main_cls_cv_experiments.py \
     --lr 0.005 \
     --L2 .0e-3 \
     --num_nets 40 \
-    --data ${data} \
-    --tr /home/sbadirli/GBNN/data/${data}.train \
-    --te /home/sbadirli/GBNN/data/${data}.test \
+    --data ${dataset} \
+    --tr ${BASEDIR}/../data/${dataset}.train \
+    --te ${BASEDIR}/../data/${dataset}.test \
     --batch_size 2048 \
     --epochs_per_stage 1 \
     --correct_epoch 1 \
@@ -29,5 +38,5 @@ CUDA_VISIBLE_DEVICES=0 python main_cls_cv_experiments.py \
     --normalization True \
     --cv True \
     --sparse False \
-    --out_f ./ckpt/${data}_cls.pth \
+    --out_f ${OUTDIR}/${dataset}_cls.pth \
     --cuda
