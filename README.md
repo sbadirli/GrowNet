@@ -74,6 +74,5 @@ Feel free to drop me an email if you have any questions: s.badirli@gmail.com
 
 ### Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* To his immense credit, my colleague, Xuanqing Liu (https://xuanqing94.github.io/), did an awesome job on the code development.  
+
