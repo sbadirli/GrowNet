@@ -35,7 +35,7 @@ conda create --name grownet --file requirements.txt
 
 ## Data
 
-You can download the data used in the paper from Google OneDrive link: https://drive.google.com/drive/folders/17ymIdQSya_DMLhDoMf6YzSG2HXWi0bzG?usp=sharing. Please put it into "data" folder in GrowNet folder next to Classification/L2R/Regression folders.
+You can download the datasets used in the paper from Google OneDrive link: https://drive.google.com/drive/folders/17ymIdQSya_DMLhDoMf6YzSG2HXWi0bzG?usp=sharing.  Create a `data` folder under GrowNet and put the data under this folder.
 
 
 #### 1. Classification:
