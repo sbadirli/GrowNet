@@ -35,7 +35,7 @@ conda create --name grownet --file requirements.txt
 
 ## Data
 
-You can download the datasets used in the paper from [Google OneDrive link] (https://drive.google.com/open?id=1NnBpwvfSdqs-lRb5UFIC-q8P455o3vO3).  Create a `data` folder under `GrowNet` and put the data under this folder.
+You can download the datasets used in the paper from [Google OneDrive link](https://drive.google.com/open?id=1NnBpwvfSdqs-lRb5UFIC-q8P455o3vO3).  Create a `data` folder under `GrowNet` and put the data under this folder.
 
 
 #### 1. Classification:
