@@ -10,9 +10,19 @@
 # criteo 45
 # yahoo 519 - 1
 # microsoft 136
-data=microsoft
+dataset=microsoft
 
-CUDA_VISIBLE_DEVICES=0 python main_l2r_pairwise_cv_experiment.py \
+BASEDIR=$(dirname "$0")
+OUTDIR="${BASEDIR}/ckpt/"
+
+if [ ! -d "${OUTDIR}" ]
+then   
+    echo "Output dir ${OUTDIR} does not exist, creating..."
+    mkdir -p ${OUTDIR}
+fi    
+
+CUDA_VISIBLE_DEVICES=0 python -u main_l2r_pairwise_cv_experiment.py \
+    --data_dir ${BASEDIR}/../data \
     --model_version main_l2r_pairwise_cv_experiment.py \
     --model_order second \
     --feat_d 136 \
@@ -21,7 +31,7 @@ CUDA_VISIBLE_DEVICES=0 python main_l2r_pairwise_cv_experiment.py \
     --lr 0.005 \
     --L2 1.0e-3 \
     --num_nets 40 \
-    --data ${data} \
+    --data ${dataset} \
     --batch_size 10000 \
     --epochs_per_stage 2 \
     --correct_epoch 2 \

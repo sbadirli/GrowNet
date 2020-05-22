@@ -48,7 +48,7 @@ def save_to_ckpt(ckpt_file, epoch, model, optimizer, lr_scheduler):
     print(get_time(), 'finish save to ckpt {}'.format(ckpt_file))
 
 
-def load_train_test_data(data_fold, dataname, cv):
+def load_train_test_data(d_dir, data_fold, dataname, cv):
     """
     :param data_fold: str, which fold's data was going to use to train
     :return:
@@ -58,20 +58,19 @@ def load_train_test_data(data_fold, dataname, cv):
 
     train_file, test_file = dataname + ".train.txt", dataname +  ".test.txt"
 
-    d_dir = '/home/sbadirli/GBNN/data/'
     if data_fold:
-        data_dir = d_dir + 'MSLR-WEB10K/'
-        train_data = os.path.join(os.path.dirname(__file__), data_dir, data_fold, train_file)
+        data_dir = os.path.join(d_dir, 'MSLR-WEB10K/')
+        train_data = os.path.join(data_dir, data_fold, train_file)
         train_loader = L2R_DataLoader(train_data)
         df_train = train_loader.load()
 
-        test_data = os.path.join(os.path.dirname(__file__), data_dir, data_fold, test_file)
+        test_data = os.path.join(data_dir, data_fold, test_file)
         test_loader = L2R_DataLoader(test_data)
         df_test = test_loader.load()
 
         if cv:
             val_file = dataname + ".vali.txt"
-            val_data = os.path.join(os.path.dirname(__file__), data_dir, data_fold, val_file)
+            val_data = os.path.join(data_dir, data_fold, val_file)
             val_loader = L2R_DataLoader(val_data)
             df_val = val_loader.load()
 

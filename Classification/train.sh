@@ -21,7 +21,7 @@ then
     mkdir -p ${OUTDIR}
 fi    
 
-CUDA_VISIBLE_DEVICES=0 python main_cls_cv_experiments.py \
+CUDA_VISIBLE_DEVICES=0 python -u main_cls_cv_experiments.py \
     --feat_d 28 \
     --hidden_d 32 \
     --boost_rate 1 \
