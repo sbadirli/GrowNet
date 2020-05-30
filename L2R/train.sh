@@ -21,12 +21,12 @@ then
     mkdir -p ${OUTDIR}
 fi    
 
-CUDA_VISIBLE_DEVICES=0 python -u main_l2r_pairwise_cv_experiment.py \
+CUDA_VISIBLE_DEVICES=0 python -u main_l2r_pairwise_cv.py \
     --data_dir ${BASEDIR}/../data \
-    --model_version main_l2r_pairwise_cv_experiment.py \
+    --model_version main_l2r_pairwise_cv.py \
     --model_order second \
     --feat_d 136 \
-    --hidden_d 128 \
+    --hidden_d 64 \
     --boost_rate 1 \
     --lr 0.005 \
     --L2 1.0e-3 \
