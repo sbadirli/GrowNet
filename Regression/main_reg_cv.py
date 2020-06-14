@@ -4,10 +4,11 @@ import argparse
 import copy
 import torch
 import torch.nn as nn
+import time
 from data.sparseloader import DataLoader
 from data.data import LibSVMData, LibCSVData, LibSVMRegData
 from data.sparse_data import LibSVMDataSp
-from models.mlp import MLP, MLP2, MLP3
+from models.mlp import MLP_1HL, MLP_2HL, MLP_3HL
 from models.dynamic_net import DynamicNet, ForwardType
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -73,29 +74,15 @@ def get_data():
 
 
 def get_optim(params, lr, weight_decay):
-    #optimizer = Adam(params, lr, weight_decay=weight_decay)
-    optimizer = SGD(params, lr, weight_decay=weight_decay)
+    optimizer = Adam(params, lr, weight_decay=weight_decay)
+    #optimizer = SGD(params, lr, weight_decay=weight_decay)
     return optimizer
 
-def accuracy(net_ensemble, test_loader):
-    #TODO once the net_ensemble contains BN, consider eval() mode
-    correct = 0
-    total = 0
-    loss = 0
-    for x, y in test_loader:
-        if opt.cuda:
-            x, y = x.cuda(), y.cuda()
-        with torch.no_grad():
-            middle_feat, out = net_ensemble.forward(x)
-        correct += (torch.sum(y[out > 0.] > 0) + torch.sum(y[out < .0] < 0)).item()
-        total += y.numel()
-    return correct / total
 
 def root_mse(net_ensemble, loader):
     loss = 0
     total = 0
-    #pred = []
-    #label = [] 
+ 
     for x, y in loader:
         if opt.cuda:
             x = x.cuda()
@@ -104,26 +91,10 @@ def root_mse(net_ensemble, loader):
             _, out = net_ensemble.forward(x)
         y = y.cpu().numpy().reshape(len(y), 1)
         out = out.cpu().numpy().reshape(len(y), 1)
-        #pred.append(out)
-        #label.append(y)
         loss += mean_squared_error(y, out)* len(y)
         total += len(y)
     return np.sqrt(loss / total)
 
-def auc_score(net_ensemble, test_loader):
-    actual = []
-    posterior = []
-    for x, y in test_loader:
-        if opt.cuda:
-            x = x.cuda()
-        with torch.no_grad():
-            _, out = net_ensemble.forward(x)
-        prob = 1.0 - 1.0 / torch.exp(out)   # Why not using the scores themselve than converting to prob
-        prob = prob.cpu().numpy().tolist()
-        posterior.extend(prob)
-        actual.extend(y.numpy().tolist())
-    score = auc(actual, posterior)
-    return score
 
 def init_gbnn(train):
     positive = negative = 0
@@ -138,8 +109,7 @@ def init_gbnn(train):
     return float(np.log(positive / negative))
 
 if __name__ == "__main__":
-    # prepare datasets
-    #torch.autograd.set_detect_anomaly(True)
+
     train, test, val = get_data()
     N = len(train)
     print(opt.data + ' training and test datasets are loaded!')
@@ -155,7 +125,8 @@ if __name__ == "__main__":
     loss_f1 = nn.MSELoss()
     loss_models = torch.zeros((opt.num_nets, 3))
     for stage in range(opt.num_nets):
-        model = MLP3.get_model(stage, opt)  # Initialize the model_k: f_k(x), multilayer perception v2
+        t0 = time.time()
+        model = MLP_2HL.get_model(stage, opt)  # Initialize the model_k: f_k(x), multilayer perception v2
         if opt.cuda:
             model.cuda()
 
@@ -170,19 +141,17 @@ if __name__ == "__main__":
                     y = torch.as_tensor(y, dtype=torch.float32).cuda().view(-1, 1)
                 middle_feat, out = net_ensemble.forward(x)
                 out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
-                #resid = y / (1.0 + torch.exp(y * out)) # Make sense now, out is result of linear layer
                 grad_direction = -(out-y)
-                ######### My addition #############
+
                 _, out = model(x, middle_feat)
                 out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
                 loss = loss_f1(net_ensemble.boost_rate*out, grad_direction)  # T
-                #loss = loss_f1(net_ensemble.boost_rate*out/nwtn_weights, grad_direction/nwtn_weights).sum()
+
                 model.zero_grad()
                 loss.backward()
                 optimizer.step()
                 stage_mdlloss.append(loss.item()*len(y))
-        #print(net_ensemble.boost_rate)
-        #net_ensemble.add(model, net_ensemble.boost_rate)
+
         net_ensemble.add(model)
         sml = np.sqrt(np.sum(stage_mdlloss)/N)
         
@@ -196,6 +165,7 @@ if __name__ == "__main__":
             if stage % 15 == 0:
                 #lr_scaler *= 2
                 opt.lr /= 2
+                opt.L2 /= 2
             optimizer = get_optim(net_ensemble.parameters(), opt.lr / lr_scaler, opt.L2)
             for _ in range(opt.correct_epoch):
                 stage_loss = []
@@ -204,29 +174,26 @@ if __name__ == "__main__":
                         x, y = x.cuda(), y.cuda().view(-1, 1)
                     _, out = net_ensemble.forward_grad(x)
                     out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
-                    #loss = (w*loss_f2(out, y)).sum()/w.sum() #Do NOT forget to normalize 
-                    #import ipdb; ipdb.set_trace()
-                    loss = loss_f1(out, y) # Not including weights during training!!!
-                    #net_ensemble.zero_grad()
+                    
+                    loss = loss_f1(out, y) 
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
                     stage_loss.append(loss.item()*len(y))
         #print(net_ensemble.boost_rate)
         # store model
-
+        elapsed_tr = time.time()-t0
         sl = 0
         if stage_loss != []:
             sl = np.sqrt(np.sum(stage_loss)/N)
 
-        print(f'Stage - {stage}, model MSE loss: {sml: .5f}, Ensemble Net MSE Loss: {sl: .5f}')
+        print(f'Stage - {stage}, training time: {elapsed_tr: .1f} sec, model MSE loss: {sml: .5f}, Ensemble Net MSE Loss: {sl: .5f}')
 
         net_ensemble.to_file(opt.out_f)
-        net_ensemble = DynamicNet.from_file(opt.out_f, lambda stage: MLP3.get_model(stage, opt))
+        net_ensemble = DynamicNet.from_file(opt.out_f, lambda stage: MLP_2HL.get_model(stage, opt))
 
         if opt.cuda:
             net_ensemble.to_cuda()
-        # It seems we need to run the models in cuda again after loading from directory
         net_ensemble.to_eval() # Set the models in ensemble net to eval mode
 
         # Train
@@ -241,14 +208,6 @@ if __name__ == "__main__":
 
         print(f'Stage: {stage}  RMSE@Tr: {tr_rmse:.5f}, RMSE@Val: {val_rmse:.5f}, RMSE@Te: {te_rmse:.5f}')
 
-
-        
-        #print('Logloss results from stage := ' + str(stage) + '\n')
-        #ll_tr = logloss(net_ensemble, train_loader)
-        # Test
-        #ll_te = logloss(net_ensemble, test_loader)
-        #print(f'Logloss@Tr: {ll_tr:.8f}, Logloss@Te: {ll_te:.8f}')
-        #loss_models[stage, 0], loss_models[stage, 1] = ll_tr, ll_te
         loss_models[stage, 0], loss_models[stage, 1] = tr_rmse, te_rmse
 
     tr_rmse, te_rmse = loss_models[best_stage, 0], loss_models[best_stage, 1]

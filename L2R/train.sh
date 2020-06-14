@@ -2,12 +2,6 @@
 
 
 ### Feature Table ###
-# a9a 123
-# ijcnn1 22
-# covtype 54
-# mnist28 752
-# real-sim 20958
-# criteo 45
 # yahoo 519 - 1
 # microsoft 136
 dataset=microsoft
@@ -21,9 +15,9 @@ then
     mkdir -p ${OUTDIR}
 fi    
 
-CUDA_VISIBLE_DEVICES=0 python -u main_l2r_pairwise_cv.py \
+CUDA_VISIBLE_DEVICES=0 python -u main_l2r_idiv_cv.py \
     --data_dir ${BASEDIR}/../data \
-    --model_version main_l2r_pairwise_cv.py \
+    --model_version main_l2r_idiv_cv.py \
     --model_order second \
     --feat_d 136 \
     --hidden_d 64 \

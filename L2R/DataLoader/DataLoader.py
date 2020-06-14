@@ -1,7 +1,3 @@
-"""
-Microsoft Learning to Rank Dataset:
-https://www.microsoft.com/en-us/research/project/mslr/
-"""
 import datetime
 import os
 

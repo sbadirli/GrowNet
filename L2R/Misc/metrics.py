@@ -7,56 +7,6 @@ https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-
 """
 
 import numpy as np
-#from recsys.evaluation.ranking import KendallTau
-#from recsys.evaluation.ranking import SpearmanRho
-
-
-def mean_spearman_rho(labels, pred, group):
-    spearman = SpearmanRho()
-    g_len = len(group)
-    curr_cnt = 0
-    prev_cnt = 0
-    res = 0
-    weighted_res = 0
-    for i in range(g_len):
-        curr_cnt += group[i]
-        query_l = labels[prev_cnt:curr_cnt]
-        query_p = pred[prev_cnt:curr_cnt]
-        
-        if group[i]<1 or len(np.unique(query_l))==1:
-            continue
-        
-        spearman.load(query_l, query_p)
-        spr = spearman.compute()
-        res += spr
-        weighted_res += spr*group[i]
-        prev_cnt = curr_cnt
-    
-    return res/g_len, weighted_res/sum(group)
-
-def mean_kendall_tau(labels, pred, group):
-    kendall = KendallTau()
-    g_len = len(group)
-    curr_cnt = 0
-    prev_cnt = 0
-    res = 0
-    weighted_res = 0
-    for i in range(g_len):
-        curr_cnt += group[i]
-        query_l = labels[prev_cnt:curr_cnt]
-        query_p = pred[prev_cnt:curr_cnt]
-        
-        if group[i]<1 or len(np.unique(query_l))==1:
-            continue
-            
-        kendall.load(query_l, query_p)
-        kt = kendall.compute()
-        res += kt
-        weighted_res += kt*group[i]
-        prev_cnt = curr_cnt
-    
-    return res/g_len, weighted_res/sum(group)
-
 
 
 class DCG(object):

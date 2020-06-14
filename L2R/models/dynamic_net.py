@@ -46,7 +46,6 @@ class DynamicNet(object):
     def forward(self, x):
         if len(self.models) == 0:
             return None, self.c0*torch.ones((len(x), 1))
-        # at least one model
         middle_feat_cum = None
         prediction = None
         with torch.no_grad():
@@ -60,7 +59,7 @@ class DynamicNet(object):
 
     def forward_grad(self, x):
         if len(self.models) == 0:
-            return None, self.c0*torch.ones((len(x), 1))
+            return None, self.c0
         # at least one model
         middle_feat_cum = None
         prediction = None

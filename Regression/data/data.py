@@ -18,8 +18,6 @@ class LibSVMData(Dataset):
         self.feat = csr_matrix((self.feat.data, self.feat.indices, self.feat.indptr), shape=(len(self.label), dim))
         self.feat = self.feat.toarray().astype(np.float32)
 
-        #self.label = (self.label.astype(np.float32) + 1) / 2.0
-        #self.label = (self.label.astype(np.float32) - 1.5) * 2
         self.label = self.label.astype(np.float32)
         idx_pos = self.label == pos
         idx_neg = self.label == neg
@@ -49,7 +47,7 @@ class LibSVMRankData(Dataset):
 
 class LibSVMRegData(Dataset):
     def __init__(self, root, dim, normalization):
-        data    = np.load(root)  
+        data = np.load(root)        
         self.feat, self.label = data['features'], data['labels']
         del data
         self.feat = self.feat.astype(np.float32)
@@ -67,8 +65,7 @@ class LibSVMRegData(Dataset):
 
 class LibCSVData(Dataset):
     def __init__(self, root, dim, pos=1, neg=-1):
-         ####### Delete it after DNN on Higgs experiment. #########
-        self.data = np.loadtxt(root, delimiter=',',  max_rows=1000000).astype(np.float32)
+        self.data = np.loadtxt(root, delimiter=',').astype(np.float32)
         self.feat = self.data[:, 1:]
         self.label = self.data[:, 0]
         self.label[self.label == pos] = 1
@@ -89,7 +86,6 @@ class CriteoCSVData(Dataset):
         # extracting labels (0, 1) and weights
         self.label = self.data.iloc[:, -2]
         self.weights = self.data.iloc[:, -1]
-        #self.data.drop(self.data.columns[[-1, -2]], axis=1, inplace=True) # dropping last 2 columns
         self.data = self.data.iloc[:, :-2]
         # transferring labels from {0, 1} to {-1, 1}
         self.label[self.label == pos] = 1

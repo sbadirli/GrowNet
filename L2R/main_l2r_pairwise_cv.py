@@ -4,7 +4,7 @@ import pandas as pd
 import argparse
 import torch
 import torch.nn as nn
-from models.mlp import MLP, MLP2, MLP3
+from models.mlp import MLP_1HL, MLP_2HL, MLP_3HL
 from models.dynamic_net import DynamicNet, ForwardType
 from torch.optim import SGD, Adam
 from DataLoader.DataLoader import L2R_DataLoader
@@ -22,6 +22,7 @@ parser.add_argument('--boost_rate', type=float, required=True)
 parser.add_argument('--lr', type=float, required=True)
 parser.add_argument('--num_nets', type=int, required=True)
 parser.add_argument('--data', type=str, required=True)
+parser.add_argument('--data_dir', type=str, required=True)
 parser.add_argument('--batch_size', type=int, required=True)
 parser.add_argument('--epochs_per_stage', type=int, required=True)
 parser.add_argument('--correct_epoch', type=int ,required=True)
@@ -41,10 +42,10 @@ if not opt.cuda:
 def get_data():
     if opt.data == 'yahoo':
         data_fold = None
-        train_loader, df_train, test_loader, df_test, val_loader, df_val = load_train_test_data(data_fold, opt.data, opt.cv)
+        train_loader, df_train, test_loader, df_test, val_loader, df_val = load_train_test_data(opt.data_dir, data_fold, opt.data, opt.cv)
     elif opt.data == 'microsoft':
         data_fold = 'Fold1'
-        train_loader, df_train, test_loader, df_test, val_loader, df_val = load_train_test_data(data_fold, opt.data, opt.cv)
+        train_loader, df_train, test_loader, df_test, val_loader, df_val = load_train_test_data(opt.data_dir, data_fold, opt.data, opt.cv)
     else:
         pass
 
@@ -65,45 +66,12 @@ def get_optim(params, lr, weight_decay):
     optimizer = Adam(params, lr, weight_decay=weight_decay)
     return optimizer
 
-def metrics(net_ensemble, test_data):
-    y_real = []
-    y_pred = []
-    qid = -1
-    count = 0
-    ndcg = 0
-    for i in range(len(test_data)):
-        x, y, w = test_data[i]
-        if qid != w:
-            if qid != -1:
-                # calculate metrics
-                count += 1
-                y_real, y_pred = np.asarray(y_real), np.asarray(y_pred)
-                score = ndcg_score(y_real, y_pred)
-                if np.isnan(score):
-                    print(score, y_real, y_pred)
-                ndcg += score
-            # start new query
-            y_real = []
-            y_pred = []
-            qid = w
-        y_real.append(y)
-        x = torch.from_numpy(x).unsqueeze(0).cuda()
-        _, out = net_ensemble.forward(x)
-        y_pred.append(out.item())
-
-    avg_ndcg = ndcg / count
-    return avg_ndcg
-
-#def init_gbnn(train):
-#    avg = 0
-#    for i in range(len(train)):
-#       avg += (2 ** train['1'][1] - 1) / 16
-#    return float(avg / len(train))
 
 def init_gbnn(df_train):
     avg = (2**df_train['rel'] - 1)/16
 
     return avg.mean()
+
 if __name__ == "__main__":
     # prepare datasets
     device = get_device()
@@ -132,8 +100,8 @@ if __name__ == "__main__":
 
     for stage in range(opt.num_nets):
         t0 = time.time()
-        model = MLP3.get_model(stage, opt)
-        model.apply(init_weights)  # Applying uniform xavier initialization for Linear layers (common in L2R)
+        model = MLP_2HL.get_model(stage, opt)
+        model.apply(init_weights)  # Applying uniform xavier initialization for Linear layers
         if opt.cuda:
             model.cuda()
         optimizer = get_optim(model.parameters(), opt.lr, opt.L2)
@@ -175,19 +143,14 @@ if __name__ == "__main__":
                         resid = -grad_ord1
 
                     if grad_batch is None:
-                        #grad_batch = -grad_ord1
                         grad_batch = resid
                     else:
-                        #grad_batch = torch.cat((grad_batch, -grad_ord1), dim=0)
                         grad_batch = torch.cat((grad_batch, resid), dim=0)
 
                 _, out = model(x, middle_feat)
                 out = torch.as_tensor(out.view(-1, 1), dtype=torch.float32, device=device)
-                #out_min, out_max, out_mean = out.min().item(), out.max().item(), out.mean().item()
-                #print(f'Batch output min : {out_min: .1f}, max : {out_max: .1f}, mean : {out_mean: .1f} \n')
+
                 loss = loss_f(net_ensemble.boost_rate*out, grad_batch)
-                #loss = loss_f(out, grad_batch)
-                #print(loss.item())
                 model.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -196,7 +159,6 @@ if __name__ == "__main__":
                 #print('Model parameters after grad update \n')
                 for name, param in model.named_parameters():
                     if param.requires_grad:
-                        #print(name, param.data)
                         if np.isnan(param.data.sum().detach().cpu().numpy()):
                             import ipdb; ipdb.set_trace()
 
@@ -204,17 +166,18 @@ if __name__ == "__main__":
         net_ensemble.add(model)
         sr = -np.mean(stage_resid)
         sml = np.mean(stage_mdlloss)
-        print(f'Stage - {stage} resid: {sr}, and model loss: {sml}')
+        #print(f'Stage - {stage} resid: {sr}, and model loss: {sml}')
 
         # fully-corrective step
         stage_loss = []
         lr_scaler = 3
-        if stage >4:
+        if stage >3:
             
             # Adjusting corrective step learning rate 
             if stage % 15 == 0:
                 #lr_scaler *= 2
                 opt.lr /= 2
+                opt.L2 /= 2
 
             optimizer = get_optim(net_ensemble.parameters(), opt.lr/lr_scaler, opt.L2)
             for _ in range(opt.correct_epoch):
@@ -246,8 +209,6 @@ if __name__ == "__main__":
 
                     loss_batch = loss_batch/len(uq) #opt.batch_size
                     #import ipdb; ipdb.set_trace()
-                    #print('Batch Loss from Corrective step: \n')
-                    #print(loss_batch)
                     optimizer.zero_grad()
                     loss_batch.backward()
                     optimizer.step()
@@ -265,8 +226,7 @@ if __name__ == "__main__":
         elapsed_tr = time.time()-t0
         
         net_ensemble.to_eval() # Set the models in ensemble net to eval mode
-        # Validation metrics
-        #avg_ndcg = metrics(net_ensemble, test)
+        
         ndcg_result = eval_ndcg_at_k(net_ensemble, device, df_test, test_loader, 100000, [5, 10], gain_type)
         if opt.cv:
             val_result = eval_ndcg_at_k(net_ensemble, device, df_val, val_loader, 100000, [5, 10], gain_type, "Validation") 
@@ -274,18 +234,16 @@ if __name__ == "__main__":
                 best_ndcg = val_result[5]
                 best_stage = stage
 
-        #ndcg_result = eval_ndcg_at_k(net_ensemble, device, df_train, train_loader, 100000, [5, 10])
         
         all_scores.append([ndcg_result[5], ndcg_result[10]])
         elapsed_te = time.time()-t0 - elapsed_tr
         # Storing training and test time
         execution_time.append([elapsed_tr, elapsed_te])
         print(f'Stage: {stage} Training time: {elapsed_tr: .1f} sec and Test time: {elapsed_te: .1f} sec \n')
-        #print("finish training " + ", ".join(["NDCG@{}: {:.5f}".format(k, ndcg_result[k]) for k in ndcg_result]),'\n\n')
-        #print(f'Stage: {stage}, elapsed  training time: {elapsed_tr:.1f} sec, elapsed  test time: {elapsed_te:.1f} sec, NDCG@10: {avg_ndcg}')
+
     ### Test results from CV ###
     te_ndcg_5, te_ndcg_10 = all_scores[best_stage][0], all_scores[best_stage][1]
     print(f'Best validation stage: {best_stage}  final Test NDCG@5: {te_ndcg_5:.5f}, NDCG@10: {te_ndcg_10:.5f}')
 
-    fname = './results/' + opt.data + '_NDCG_pairwiseloss_' + opt.model_order
+    fname = './results/' + opt.data +'_'+ str(opt.hidden_d) + 'u_2hl_pairwiseloss_' + opt.model_order
     np.savez(fname, all_scores=all_scores, all_ensm_losses=all_ensm_losses, all_mdl_losses=all_mdl_losses, dynamic_br=dynamic_br, execution_time=execution_time, options=opt)

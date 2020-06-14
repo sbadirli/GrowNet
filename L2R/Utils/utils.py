@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from DataLoader.DataLoader import get_time, L2R_DataLoader
-from Misc.metrics import NDCG, mean_kendall_tau, mean_spearman_rho
+from Misc.metrics import NDCG
 
 
 def get_device():
@@ -20,7 +20,7 @@ def get_device():
         device = "cuda:0" 
     else:
         device = "cpu"
-    print("use device", device)
+    print("Using device ", device)
     return device
 
 
@@ -220,42 +220,6 @@ def check_for_single_queries(q, y):
             idx.append(idd)
     idx = np.concatenate(idx).ravel().tolist()
     return idx
-
-
-def get_l2r_group(data):
-    group_tr = []
-    group_ts = []
-    if data == 'yahoo':
-        with open("/var/opt/data/user_data/s.badirli/Yahoo/yahoo.train.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_tr.append(int(line.split("\n")[0]))
-
-        with open("/var/opt/data/user_data/s.badirli/Yahoo/yahoo.test.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_ts.append(int(line.split("\n")[0]))
-
-        with open("/var/opt/data/user_data/s.badirli/Yahoo/yahoo.vali.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_vali.append(int(line.split("\n")[0]))
-    elif data == 'microsoft':
-        with open("/var/opt/data/user_data/s.badirli/MSLR-WEB10K/Fold1/microsoft.train.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_tr.append(int(line.split("\n")[0]))
-
-        with open("/var/opt/data/user_data/s.badirli/MSLR-WEB10K/Fold1/microsoft.test.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_ts.append(int(line.split("\n")[0]))
-
-        with open("/var/opt/data/user_data/s.badirli/MSLR-WEB10K/Fold1/microsoft.vali.group", "r") as f:
-            data = f.readlines()
-            for line in data:
-                group_vali.append(int(line.split("\n")[0]))
-    return group_tr, group_ts, group_vali
 
 
 def get_args_parser():
