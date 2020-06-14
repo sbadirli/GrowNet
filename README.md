@@ -2,6 +2,22 @@
 
 Original PyTorch implementation of "Gradient Boosting Neural Networks: GrowNet" 
 
+Paper at: https://arxiv.org/pdf/2002.07971.pdf
+
+<p align="center">
+  <img width="800" src="Model.png">
+</p>
+<p align="justify">
+
+## Getting Started
+
+In this paper, we combine the power of gradient boosting with the flexibility and
+versatility of neural networks and introduce a new modelling paradigm called GrowNet that can
+build up a DNN layer by layer. Instead of decision trees, we use shallow neural networks as our
+weak learners in a general gradient boosting framework that can be applied to a wide variety of tasks
+spanning classification, regression and ranking. We introduce further innovations like adding second
+order statistics to the training process, and also including a global corrective step that has been shown,
+both in theory and in empirical evaluation, to provide performance lift and precise fine-tuning to the specific task at hand.
 
 
 ## Prerequisites
@@ -25,7 +41,7 @@ conda create --name grownet --file requirements.txt
 
 ## Data
 
-Create a `data` folder under `GrowNet` and put the data under this folder.
+You can download the datasets used in the paper from [Google Drive](https://drive.google.com/open?id=1NnBpwvfSdqs-lRb5UFIC-q8P455o3vO3).  Create a `data` folder under `GrowNet` and put the data under this folder.
 
 
 #### 1. Classification:
@@ -43,7 +59,7 @@ Training and test splits of regression datasets are done in jupyter notebook "re
 
 ## Experiments
 
-To reproduce the results from paper, first activate conda virtual environment
+To reproduce the results from pape, first activate conda virtual environment
 
 ```
 conda activate grownet
@@ -58,4 +74,10 @@ You may change the dataset, number of hidden layers, number of hidden units in h
 
 The results may vary 1% or less between identical runs due to random initialization.
 
+### Contact
 
+Feel free to drop me an email if you have any questions: s.badirli@gmail.com
+
+### Acknowledgments
+
+* To his immense credit, my colleague, Xuanqing Liu (https://xuanqing94.github.io/), did an awesome job on the code development.  
