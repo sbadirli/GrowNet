@@ -63,7 +63,6 @@ if IS_WINDOWS:
                 raise ctypes.WinError(ctypes.get_last_error())
 
         def is_alive(self):
-            # Value obtained from https://msdn.microsoft.com/en-us/library/windows/desktop/ms687032.aspx
             return self.kernel32.WaitForSingleObject(self.manager_handle, 0) != 0
 else:
     class ManagerWatchdog(object):
@@ -78,10 +77,6 @@ def _worker_loop(dataset, index_queue, data_queue, collate_fn, seed, init_fn, wo
     global _use_shared_memory
     _use_shared_memory = True
 
-    # Intialize C side signal handlers for SIGBUS and SIGSEGV. Python signal
-    # module's handlers are executed after Python returns from C low-level
-    # handlers, likely when the same fatal signal happened again already.
-    # https://docs.python.org/3/library/signal.html Sec. 18.8.1.1
     _set_worker_signal_handlers()
 
     torch.set_num_threads(1)
@@ -235,8 +230,6 @@ def _set_SIGCHLD_handler():
         previous_handler = None
 
     def handler(signum, frame):
-        # This following call uses `waitid` with WNOHANG from C side. Therefore,
-        # Python can still get and update the process status successfully.
         _error_if_any_worker_fails()
         if previous_handler is not None:
             previous_handler(signum, frame)
@@ -371,11 +364,7 @@ class _DataLoaderIter(object):
         return batch
 
     def __getstate__(self):
-        # TODO: add limited pickling support for sharing an iterator
-        # across multiple threads for HOGWILD.
-        # Probably the best way to do this is by moving the sample pushing
-        # to a separate thread and then just sharing the data queue
-        # but signalling the end is tricky without a non-blocking API
+
         raise NotImplementedError("_DataLoaderIter cannot be pickled")
 
     def _shutdown_workers(self):
@@ -390,16 +379,7 @@ class _DataLoaderIter(object):
                     while not self.worker_result_queue.empty():
                         self.worker_result_queue.get()
                 except (FileNotFoundError, ImportError):
-                    # Many weird errors can happen here due to Python
-                    # shutting down. These are more like obscure Python bugs.
-                    # FileNotFoundError can happen when we rebuild the fd
-                    # fetched from the queue but the socket is already closed
-                    # from the worker side.
-                    # ImportError can happen when the unpickler loads the
-                    # resource from `get`.
                     pass
-                # done_event should be sufficient to exit worker_manager_thread,
-                # but be safe here and put another None
                 self.worker_result_queue.put(None)
         finally:
             # removes pids no matter what

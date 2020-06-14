@@ -1,6 +1,3 @@
-# (C) Mathieu Blondel, November 2013
-# License: BSD 3 clause
-
 import numpy as np
 
 

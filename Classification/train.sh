@@ -6,9 +6,6 @@
 # covtype 54
 # mnist28 752
 # real-sim 20958
-# criteo 45
-# Criteo_Dracula 766
-# yahoo.pair 519
 # higgs 28
 dataset=higgs
 
@@ -21,9 +18,9 @@ then
     mkdir -p ${OUTDIR}
 fi    
 
-CUDA_VISIBLE_DEVICES=0 python -u main_cls_cv_experiments.py \
+CUDA_VISIBLE_DEVICES=0 python -u main_cls_cv.py \
     --feat_d 28 \
-    --hidden_d 32 \
+    --hidden_d 16 \
     --boost_rate 1 \
     --lr 0.005 \
     --L2 .0e-3 \

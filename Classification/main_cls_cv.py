@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 import numpy as np
+import sklearn
 import argparse
 import copy
+import time
 import torch
 import torch.nn as nn
 from data.sparseloader import DataLoader
 from data.data import LibSVMData, LibCSVData, CriteoCSVData
 from data.sparse_data import LibSVMDataSp
-from models.mlp import MLP, MLP2, MLP3
+from models.mlp import MLP_1HL, MLP_2HL, MLP_3HL
 from models.dynamic_net import DynamicNet, ForwardType
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -28,7 +30,6 @@ parser.add_argument('--batch_size', type=int, required=True)
 parser.add_argument('--epochs_per_stage', type=int, required=True)
 parser.add_argument('--correct_epoch', type=int ,required=True)
 parser.add_argument('--L2', type=float, required=True)
-#parser.add_argument('--sparse', action='store_true')
 parser.add_argument('--sparse', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--normalization', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--cv', default=False, type=lambda x: (str(x).lower() == 'true')) 
@@ -64,7 +65,7 @@ def get_data():
     elif opt.data == 'yahoo.pair':
         train = LibCSVData(opt.tr, opt.feat_d)
         test = LibCSVData(opt.te, opt.feat_d)
-    elif opt.data == 'Criteo_Dracula':
+    elif opt.data == 'Criteo':
         train = CriteoCSVData(opt.tr, opt.feat_d, opt.normalization, 1, 0)
         test = CriteoCSVData(opt.te, opt.feat_d, opt.normalization, 1, 0)
     else:
@@ -88,7 +89,7 @@ def get_data():
         val.label = val.label[val_idx]
 
     if opt.normalization:
-        scaler = StandardScaler()
+        scaler = MinMaxScaler() #StandardScaler()
         scaler.fit(train.feat)
         train.feat = scaler.transform(train.feat)
         test.feat = scaler.transform(test.feat)
@@ -104,7 +105,6 @@ def get_optim(params, lr, weight_decay):
     return optimizer
 
 def accuracy(net_ensemble, test_loader):
-    #TODO once the net_ensemble contains BN, consider eval() mode
     correct = 0
     total = 0
     loss = 0
@@ -161,8 +161,7 @@ def init_gbnn(train):
     return float(np.log(positive / negative))
 
 if __name__ == "__main__":
-    # prepare datasets
-    #torch.autograd.set_detect_anomaly(True)
+
     train, test, val = get_data()
     print(opt.data + ' training and test datasets are loaded!')
     train_loader = DataLoader(train, opt.batch_size, shuffle = True, drop_last=False, num_workers=2)
@@ -186,16 +185,17 @@ if __name__ == "__main__":
     dynamic_br = []
 
     for stage in range(opt.num_nets):
+        t0 = time.time()
         #### Higgs 100K, 1M , 10M experiment: Subsampling the data each model training time ############
-        #indices = list(range(len(train)))
-        #split = 1000000
-        #np.random.shuffle(indices)
-        #train_idx = indices[:split]
-        #train_sampler = SubsetRandomSampler(train_idx)
-        #train_loader = DataLoader(train, opt.batch_size, sampler = train_sampler, drop_last=True, num_workers=2)
+        indices = list(range(len(train)))
+        split = 1000000
+        indices = sklearn.utils.shuffle(indices, random_state=41)
+        train_idx = indices[:split]
+        train_sampler = SubsetRandomSampler(train_idx)
+        train_loader = DataLoader(train, opt.batch_size, sampler = train_sampler, drop_last=True, num_workers=2)
         ################################################################################################
 
-        model = MLP3.get_model(stage, opt)  # Initialize the model_k: f_k(x), multilayer perception v2
+        model = MLP_2HL.get_model(stage, opt)  # Initialize the model_k: f_k(x), multilayer perception v2
         if opt.cuda:
             model.cuda()
 
@@ -209,25 +209,20 @@ if __name__ == "__main__":
                     x, y= x.cuda(), y.cuda().view(-1, 1)
                 middle_feat, out = net_ensemble.forward(x)
                 out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
-                #resid = y / (1.0 + torch.exp(y * out)) # Make sense now, out is result of linear layer
                 if opt.model_order=='first':
                     grad_direction = y / (1.0 + torch.exp(y * out))
                 else:
                     grad_direction = y * (1.0 + torch.exp(-y * out))
                     out = torch.as_tensor(out)
                     nwtn_weights = (torch.exp(out) + torch.exp(-out)).abs()
-                ######### My addition #############
                 _, out = model(x, middle_feat)
                 out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
-                #out = nn.functional.tanh(out)
                 loss = loss_f1(net_ensemble.boost_rate*out, grad_direction).mean()  # T
-                #loss = loss_f1(net_ensemble.boost_rate*out/nwtn_weights, grad_direction/nwtn_weights).sum()
                 model.zero_grad()
                 loss.backward()
                 optimizer.step()
                 stage_mdlloss.append(loss.item()) 
-        #print(net_ensemble.boost_rate)
-        #net_ensemble.add(model, net_ensemble.boost_rate)
+
         net_ensemble.add(model)
         sml = np.mean(stage_mdlloss)
 
@@ -248,9 +243,7 @@ if __name__ == "__main__":
                     _, out = net_ensemble.forward_grad(x)
                     out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
                     y = (y + 1.0) / 2.0
-                    #loss = (w*loss_f2(out, y)).sum()/w.sum() #Do NOT forget to normalize 
-                    loss = loss_f2(out, y).mean() # Not including weights during training!!!
-                    #net_ensemble.zero_grad()
+                    loss = loss_f2(out, y).mean() 
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
@@ -259,12 +252,12 @@ if __name__ == "__main__":
         
         sl_te = logloss(net_ensemble, test_loader)
         # Store dynamic boost rate
-        dynamic_br.append(net_ensemble.boost_rate)
+        dynamic_br.append(net_ensemble.boost_rate.item())
         # store model
         net_ensemble.to_file(opt.out_f)
-        net_ensemble = DynamicNet.from_file(opt.out_f, lambda stage: MLP3.get_model(stage, opt))
+        net_ensemble = DynamicNet.from_file(opt.out_f, lambda stage: MLP_2HL.get_model(stage, opt))
 
-
+        elapsed_tr = time.time()-t0
         sl = 0
         if stage_loss != []:
             sl = np.mean(stage_loss)
@@ -274,19 +267,15 @@ if __name__ == "__main__":
         all_ensm_losses.append(sl)
         all_ensm_losses_te.append(sl_te)
         all_mdl_losses.append(sml)
-        print(f'Stage - {stage}, Training Loss: {sl}, Test Loss: {sl_te}')
+        print(f'Stage - {stage}, training time: {elapsed_tr: .1f} sec, boost rate: {net_ensemble.boost_rate: .4f}, Training Loss: {sl: .4f}, Test Loss: {sl_te: .4f}')
 
 
         if opt.cuda:
             net_ensemble.to_cuda()
-        # It seems we need to run the models in cuda again after loading from directory
         net_ensemble.to_eval() # Set the models in ensemble net to eval mode
 
         # Train
         print('Acc results from stage := ' + str(stage) + '\n')
-        #acc_tr = accuracy(net_ensemble, train_loader)
-        # Test
-        #acc_te = accuracy(net_ensemble, test_loader)
         # AUC
         if opt.cv:
             val_score = auc_score(net_ensemble, val_loader) 
@@ -295,19 +284,9 @@ if __name__ == "__main__":
                 best_stage = stage
 
         test_score = auc_score(net_ensemble, test_loader)
-        #print(f'Acc@Tr: {acc_tr:.4f}, Acc@Te: {acc_te:.4f}, AUC@Te: {score:.4f}')
         print(f'Stage: {stage}, AUC@Val: {val_score:.4f}, AUC@Test: {test_score:.4f}')
 
-
-
-        
-        #print('Logloss results from stage := ' + str(stage) + '\n')
-        #ll_tr = logloss(net_ensemble, train_loader)
-        # Test
-        #ll_te = logloss(net_ensemble, test_loader)
-        #print(f'Logloss@Tr: {ll_tr:.8f}, Logloss@Te: {ll_te:.8f}')
         loss_models[stage, 1], loss_models[stage, 2] = val_score, test_score
-        #loss_models[stage, 0], loss_models[stage, 1], loss_models[stage, 2] = acc_tr, acc_te, test_score
 
     val_auc, te_auc = loss_models[best_stage, 1], loss_models[best_stage, 2]
     print(f'Best validation stage: {best_stage},  AUC@Val: {val_auc:.4f}, final AUC@Test: {te_auc:.4f}')
