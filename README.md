@@ -11,7 +11,13 @@ Paper at: https://arxiv.org/pdf/2002.07971.pdf
 
 ## Getting Started
 
-Little summary of GrowNet and some insight
+In this paper, we combine the power of gradient boosting with the flexibility and
+versatility of neural networks and introduce a new modelling paradigm called GrowNet that can
+build up a DNN layer by layer. Instead of decision trees, we use shallow neural networks as our
+weak learners in a general gradient boosting framework that can be applied to a wide variety of tasks
+spanning classification, regression and ranking. We introduce further innovations like adding second
+order statistics to the training process, and also including a global corrective step that has been shown,
+both in theory and in empirical evaluation, to provide performance lift and precise fine-tuning to the specific task at hand.
 
 
 ## Prerequisites
