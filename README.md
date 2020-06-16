@@ -45,7 +45,7 @@ You can download the datasets used in the paper from [Google Drive](https://driv
 
 
 #### 1. Classification:
-The original HIGGS data is split into train and test (ssame as done in XGBoost paper) using higgs2libsvm.py script.
+The original HIGGS data is splitted into train and test (same as done in XGBoost paper) using higgs2libsvm.py script.
 
 #### 2. Learning to Rank (L2R): 
 Data Loading pipeline for L2R task is implemented by taking Microsoft (MSLR-WEB10K) dataset as a baseline. We also converted Yahoo into tis format (The jupyter notebook "yahoo2mslr" does this conversion). Thus if you want to use some other L2R datasets with GrowNet, please convert it into MSLR format. Below you can find a simple sample with just 10 features:
