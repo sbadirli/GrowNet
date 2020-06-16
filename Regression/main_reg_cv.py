@@ -157,7 +157,7 @@ if __name__ == "__main__":
         
 
 
-        lr_scaler = 5
+        lr_scaler = 3
         # fully-corrective step
         stage_loss = []
         if stage > 0:
