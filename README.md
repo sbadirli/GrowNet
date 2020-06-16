@@ -70,7 +70,7 @@ Then simply navigate to the task folder: Classification, L2R or Regression and e
 ./train.sh
 ```
 
-You may change the dataset, number of hidden layers, number of hidden units in hidden units, batch size, learning rate and etc from train.sh. 
+You may change the dataset, number of hidden layers, number of hidden units in hidden layers, batch size, learning rate and etc from train.sh. 
 
 The results may vary 1% or less between identical runs due to random initialization.
 
