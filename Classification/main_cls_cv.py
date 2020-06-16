@@ -59,15 +59,12 @@ def get_data():
     elif opt.data == 'real-sim':
         train = LibSVMDataSp(opt.tr, opt.feat_d)
         test = LibSVMDataSp(opt.te, opt.feat_d)
-    elif opt.data in ['criteo', 'criteo2', 'Higgs', 'Allstate']:
+    elif opt.data in ['criteo', 'criteo2', 'Allstate']:
         train = LibCSVData(opt.tr, opt.feat_d, 1, 0)
         test = LibCSVData(opt.te, opt.feat_d, 1, 0)
     elif opt.data == 'yahoo.pair':
         train = LibCSVData(opt.tr, opt.feat_d)
         test = LibCSVData(opt.te, opt.feat_d)
-    elif opt.data == 'Criteo':
-        train = CriteoCSVData(opt.tr, opt.feat_d, opt.normalization, 1, 0)
-        test = CriteoCSVData(opt.te, opt.feat_d, opt.normalization, 1, 0)
     else:
         pass
 
@@ -212,12 +209,15 @@ if __name__ == "__main__":
                 if opt.model_order=='first':
                     grad_direction = y / (1.0 + torch.exp(y * out))
                 else:
+                    h = 1/((1+torch.exp(y*out))*(1+torch.exp(-y*out)))
                     grad_direction = y * (1.0 + torch.exp(-y * out))
                     out = torch.as_tensor(out)
                     nwtn_weights = (torch.exp(out) + torch.exp(-out)).abs()
                 _, out = model(x, middle_feat)
                 out = torch.as_tensor(out, dtype=torch.float32).cuda().view(-1, 1)
-                loss = loss_f1(net_ensemble.boost_rate*out, grad_direction).mean()  # T
+                loss = loss_f1(net_ensemble.boost_rate*out, grad_direction)  # T
+                loss = loss*h
+                loss = loss.mean()
                 model.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -228,13 +228,14 @@ if __name__ == "__main__":
 
 
         stage_loss = []
-        lr_scaler = 3
+        lr_scaler = 2
         # fully-corrective step
         if stage != 0:
             # Adjusting corrective step learning rate 
             if stage % 15 == 0:
                 #lr_scaler *= 2
                 opt.lr /= 2
+                opt.L2 /= 2
             optimizer = get_optim(net_ensemble.parameters(), opt.lr / lr_scaler, opt.L2)
             for _ in range(opt.correct_epoch):
                 for i, (x, y) in enumerate(train_loader):
