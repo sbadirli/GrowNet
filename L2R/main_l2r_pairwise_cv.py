@@ -81,7 +81,7 @@ if __name__ == "__main__":
     print(f'Start training with model version {opt.model_version} on {opt.data} dataset...')
     c0 = init_gbnn(df_train)
     net_ensemble = DynamicNet(c0, opt.boost_rate)
-    loss_f = nn.MSELoss()
+    loss_f = nn.MSELoss(reduction='none')
     all_scores = []
     all_ensm_losses = []
     all_mdl_losses = []
@@ -144,13 +144,17 @@ if __name__ == "__main__":
 
                     if grad_batch is None:
                         grad_batch = resid
+                        grad_ord2_batch = grad_ord2
                     else:
+                        grad_ord2_batch = torch.cat((grad_ord2_batch, grad_ord2), dim=0)
                         grad_batch = torch.cat((grad_batch, resid), dim=0)
 
                 _, out = model(x, middle_feat)
                 out = torch.as_tensor(out.view(-1, 1), dtype=torch.float32, device=device)
 
                 loss = loss_f(net_ensemble.boost_rate*out, grad_batch)
+                loss = grad_ord2_batch*loss
+                loss = loss.mean()
                 model.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -170,7 +174,7 @@ if __name__ == "__main__":
 
         # fully-corrective step
         stage_loss = []
-        lr_scaler = 3
+        lr_scaler = 2
         if stage >3:
             
             # Adjusting corrective step learning rate 
@@ -245,5 +249,5 @@ if __name__ == "__main__":
     te_ndcg_5, te_ndcg_10 = all_scores[best_stage][0], all_scores[best_stage][1]
     print(f'Best validation stage: {best_stage}  final Test NDCG@5: {te_ndcg_5:.5f}, NDCG@10: {te_ndcg_10:.5f}')
 
-    fname = './results/' + opt.data +'_'+ str(opt.hidden_d) + 'u_2hl_pairwiseloss_' + opt.model_order
+    fname = './results/' + opt.data +'_'+ str(opt.hidden_d) + 'u_2hl_pairwiseloss'
     np.savez(fname, all_scores=all_scores, all_ensm_losses=all_ensm_losses, all_mdl_losses=all_mdl_losses, dynamic_br=dynamic_br, execution_time=execution_time, options=opt)

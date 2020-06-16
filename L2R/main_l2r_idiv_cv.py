@@ -82,7 +82,7 @@ if __name__ == "__main__":
     print(f'Start training with model version {opt.model_version} on {opt.data} dataset...')
     c0 = init_gbnn(df_train)
     net_ensemble = DynamicNet(c0, opt.boost_rate)
-    loss_f = nn.MSELoss()
+    loss_f = nn.MSELoss(reduction='none')
     all_scores = []
     all_ensm_losses = []
     all_mdl_losses = []
@@ -129,6 +129,8 @@ if __name__ == "__main__":
                 out = torch.as_tensor(out, dtype=torch.float32, device=device).view(-1, 1)
                 
                 loss = loss_f(net_ensemble.boost_rate*out, resid)
+                loss = grad_ord2*loss
+                loss = loss.mean()
                 stage_mdlloss.append(loss.item())      
                 model.zero_grad()
                 loss.backward()
@@ -141,7 +143,7 @@ if __name__ == "__main__":
 
         # fully-corrective step
         stage_loss = []
-        lr_scaler = 3
+        lr_scaler = 2
         if stage > 0:
             # Adjusting corrective step learning rate 
             if stage % 15 == 0:
@@ -192,7 +194,7 @@ if __name__ == "__main__":
     te_ndcg_5, te_ndcg_10 = all_scores[best_stage][0], all_scores[best_stage][1]
     print(f'Best validation stage: {best_stage}  final Test NDCG@5: {te_ndcg_5:.5f}, NDCG@10: {te_ndcg_10:.5f}')
     
-    fname = './results/' + opt.data  + '_NDCG_Idivergenceloss_' + opt.model_order
+    fname = './results/' + opt.data  + '_NDCG_Idivergenceloss'
     np.savez(fname, all_scores, all_ensm_losses, all_mdl_losses)
-    np.savez('./results/' + opt.data + '_GID_parameters_' + opt.model_order, opt)
+    np.savez('./results/' + opt.data + '_GID_parameters', opt)
 
