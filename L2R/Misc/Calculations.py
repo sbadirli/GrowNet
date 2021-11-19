@@ -21,7 +21,7 @@ def loss_calc_(y_true, y_pred, gain_type, sigma, N, device):
     elif gain_type == "identity":
         gain_diff = y_tensor - y_tensor.t()
     else:
-        raise ValueError("NDCG_gain method not supported yet {}".format(ndcg_gain_in_train))
+        raise ValueError("NDCG_gain method not supported yet {}".format(gain_type))
 
     rank_order_tensor = torch.tensor(rank_order, dtype=torch.float32, device=device).view(-1, 1)
     decay_diff = 1.0 / torch.log2(rank_order_tensor + 1.0) - 1.0 / torch.log2(rank_order_tensor.t() + 1.0)
@@ -51,7 +51,7 @@ def grad_calc_(y_true, y_pred, gain_type, sigma, N, device):
     elif gain_type == "identity":
         gain_diff = y_tensor - y_tensor.t()
     else:
-        raise ValueError("NDCG_gain method not supported yet {}".format(ndcg_gain_in_train))
+        raise ValueError("NDCG_gain method not supported yet {}".format(gain_type))
 
     rank_order_tensor = torch.tensor(rank_order, dtype=torch.float32, device=device).view(-1, 1)
     decay_diff = 1.0 / torch.log2(rank_order_tensor + 1.0) - 1.0 / torch.log2(rank_order_tensor.t() + 1.0)
@@ -94,7 +94,7 @@ def grad_calc_v2(y_true, y_pred, gain_type, sigma, N, device):
     elif gain_type == "identity":
         gain_diff = y_tensor - y_tensor.t()
     else:
-        raise ValueError("NDCG_gain method not supported yet {}".format(ndcg_gain_in_train))
+        raise ValueError("NDCG_gain method not supported yet {}".format(gain_type))
 
     rank_order_tensor = torch.tensor(rank_order, dtype=torch.float32, device=device).view(-1, 1)
     decay_diff = 1.0 / torch.log2(rank_order_tensor + 1.0) - 1.0 / torch.log2(rank_order_tensor.t() + 1.0)
@@ -132,7 +132,7 @@ def loss_calc_v2(y_true, y_pred, gain_type, sigma, N, device):
     elif gain_type == "identity":
         gain_diff = y_tensor - y_tensor.t()
     else:
-        raise ValueError("NDCG_gain method not supported yet {}".format(ndcg_gain_in_train))
+        raise ValueError("NDCG_gain method not supported yet {}".format(gain_type))
 
     rank_order_tensor = torch.tensor(rank_order, dtype=torch.float32, device=device).view(-1, 1)
     decay_diff = 1.0 / torch.log2(rank_order_tensor + 1.0) - 1.0 / torch.log2(rank_order_tensor.t() + 1.0)
